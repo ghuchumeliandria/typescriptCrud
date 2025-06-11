@@ -71,6 +71,23 @@ productRouter.post("/:id/review" , async(req,res) =>{
         return
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    const header  = req.headers["email"]
+    if(typeof header !== "string") {
+        res.status(400).json({error : "emaili stringi ar aris"})
+        return
+    }
+    const checkEmail  = emailRegex.test(header)
+    if(!checkEmail) {
+        res.status(400).json({error : "sheiyvane emaili da ara sityvebi .l."})
+        return
+    }
+    if(!header) {
+        res.status(400).json({error : "Emaili gchirdeba headershi dzmao ra ise ver sheafaseb"})
+        return
+    }
+
     const {email , rating , comment} = req.body
 
     if(!email || !rating || !comment) {
@@ -97,6 +114,7 @@ productRouter.put('/:id' ,productDelMiddleware  , upload.single('image') , async
     }
     const {productName,description,price,category} = req.body
 
+    
     
     const product = await productsModel.findById(id)
     if(!product) {
