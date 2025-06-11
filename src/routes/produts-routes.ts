@@ -4,14 +4,49 @@ import productValSchema from "../validations/product.validation";
 import { deleteFromCloudinary, upload } from "../config/cloudinary/config.cloudinary";
 import { isValidObjectId } from "mongoose";
 import productDelMiddleware from "../middlewares/productDel.middleware";
+import { func, string } from "joi";
 
 const productRouter = Router() 
-
-productRouter.get('/', async (req: Request,res : Response) =>{
-    const products = await productsModel.find()
+// productRouter.get('/', async (req: Request,res : Response) =>{
+//     const products = await productsModel.find()
+//     const category = req.query.category
+//     const price = req.query.price
     
-    res.json(products)
+    
+//     const filteredQuery = products.filter(el => el.category === category)
+    
+//     if(price === "desc"  ) {
+//         filteredQuery.sort((a,b) => b.price - a.price)
+//     }else if(price == "inc"){
+//         filteredQuery.sort((a,b) => a.price - b.price)
+//     }else{
+//         res.status(400).json({error : "baad requestia dzmaoa cudi queria"})
+//         return
+//     }
+    
+    
+//     res.json(filteredQuery)
+// })
+// productRouter.get("/" , async(req,res) =>{
+//     const page = Number(req.query.page) || 1
+//     const limit = Number(req.query.limit) || 10
+//     const products = await productsModel.find().skip(page).limit(limit)
+//     
+//     res.json(products)
+// })
+productRouter.get("/" , async(req,res) =>{
+    const search = String(req.query.search)
+    const products = await productsModel.find()
+    if(search !== 'phone'){
+        res.status(400).json({error : 'invalid query jigaro'})
+        return
+    }
+    const filteredProducts =  products.filter(el => el.productName.includes(search))
+    
+    res.json(filteredProducts)
 })
+
+
 
 productRouter.post("/" , upload.single('image'), async (req : Request ,res : Response)  =>{
     const {error} = productValSchema.validate(req.body || {} , {abortEarly : false})
@@ -27,6 +62,25 @@ productRouter.post("/" , upload.single('image'), async (req : Request ,res : Res
     }
     const createProduct = await productsModel.create({productName,description,price,category , image : req.file?.path})
     res.status(201).json({message : "product created successfully" , product : createProduct})
+})
+
+productRouter.post("/:id/review" , async(req,res) =>{
+    const {id} = req.params
+    if(!isValidObjectId(id)) {
+        res.status(400).json({error : "invalid product"})
+        return
+    }
+
+    const {email , rating , comment} = req.body
+
+    if(!email || !rating || !comment) {
+        res.status(400).json({error : "required fields"})
+        return
+    }
+    
+    const product = await productsModel.findByIdAndUpdate(id ,  {$push : {reviews : {email , rating ,comment}}} , {new : true})
+
+    res.json(product)
 })
 
 productRouter.put('/:id' ,productDelMiddleware  , upload.single('image') , async(req,res) =>{
